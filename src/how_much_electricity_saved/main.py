@@ -172,11 +172,14 @@ class ElectricityConsumptionReport:
 
         ax.legend(legend)
 
-    def create_plot_saved_electricity_vs_time(self, ax: plt.axes):
+    def create_plot_cumnulative_saved_electricity_vs_time(self, ax: plt.axes):
 
         ax.set_xlabel("Date")
         ax.set_ylabel("Cumulative saved electricity [kWh]")
-        plt.gca().xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
+
+        begin_date = self.apply_daterange(self.df, date_range=self.dateranges_to_group_to[0]).index[0]
+        initial_saved_cumulative_consumption = self.df["saved_cumulative_consumption"][begin_date]
 
         legend = []
         for date_range in self.dateranges_to_group_to:
@@ -184,11 +187,58 @@ class ElectricityConsumptionReport:
             x_data = df_daterange.index
             y_data = (
                 df_daterange["saved_cumulative_consumption"]
-                - df_daterange["saved_cumulative_consumption"][x_data[0]]
+                - initial_saved_cumulative_consumption
             )
             ax.scatter(x_data, y_data, s=self.dot_size, color=date_range.color)
             legend.append(
                 f"Cumulative saved electricity compared to baseline [kWh] {date_range.begin} - {date_range.end}"
             )
 
-        plt.gcf().autofmt_xdate()
+    def create_plot_cumnulative_saved_electricity_percents(self, ax: plt.axes):
+
+        ax.set_xlabel("Date")
+        ax.set_ylabel("Cumulative saved electricity [%]")
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
+
+        begin_date = self.apply_daterange(self.df, date_range=self.dateranges_to_group_to[0]).index[0]
+        initial_cumulative_consumption = self.df["cumulative_consumption"][begin_date]
+        initial_saved_cumulative_consumption = self.df["saved_cumulative_consumption"][begin_date]
+
+        legend = []
+        for date_range in self.dateranges_to_group_to:
+            df_daterange = self.apply_daterange(self.df, date_range=date_range)
+            x_data = df_daterange.index
+            y_data = (
+                (df_daterange["saved_cumulative_consumption"]
+                - initial_saved_cumulative_consumption )
+                /
+                (df_daterange["cumulative_consumption"]
+                - initial_cumulative_consumption )
+                * 100
+            )
+            ax.scatter(x_data, y_data, s=self.dot_size, color=date_range.color)
+            legend.append(
+                f"Cumulative saved electricity compared to baseline [%] {date_range.begin} - {date_range.end}"
+            )
+
+    def create_plot_cumnulative_consumed_electricity(self, ax: plt.axes):
+
+        ax.set_xlabel("Date")
+        ax.set_ylabel("Cumulative consumed electricity [kWh]")
+        ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
+
+        begin_date = self.apply_daterange(self.df, date_range=self.dateranges_to_group_to[0]).index[0]
+        initial_cumulative_consumption = self.df["cumulative_consumption"][begin_date]
+
+        legend = []
+        for date_range in self.dateranges_to_group_to:
+            df_daterange = self.apply_daterange(self.df, date_range=date_range)
+            x_data = df_daterange.index
+            y_data = (
+                df_daterange["cumulative_consumption"]
+                - initial_cumulative_consumption 
+            )
+            ax.scatter(x_data, y_data, s=self.dot_size, color=date_range.color)
+            legend.append(
+                f"Cumulative consumed electricity [kWh] {date_range.begin} - {date_range.end}"
+            )
