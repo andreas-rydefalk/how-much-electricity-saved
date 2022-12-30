@@ -29,3 +29,10 @@ def fitting_func_poly4(
     e: float,
 ) -> float:
     return a * x**4 + b * x**3 + c * x**2 + d * x + e
+
+def fitting_func_linear(
+    x: float,
+    a: float,
+    b: float,
+) -> float:
+    return x * a + b
