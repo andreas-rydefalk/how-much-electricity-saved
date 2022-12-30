@@ -118,6 +118,10 @@ class ElectricityConsumptionReport:
         self.df["saved_daily_consumption"] = self.df.apply(
             lambda row: row["baseline_consumption"] - row["consumption"], axis=1
         )
+        self.df["cumulative_consumption"] = self.df[
+            "consumption"
+        ].cumsum()
+
         self.df["saved_cumulative_consumption"] = self.df[
             "saved_daily_consumption"
         ].cumsum()
