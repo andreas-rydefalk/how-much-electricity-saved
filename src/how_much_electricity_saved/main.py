@@ -96,35 +96,23 @@ class ElectricityConsumptionReport:
         self.df_raw["date"] = self.df_raw["time"].dt.date
 
         # Group the data by date and calculate the sum of the hourly_consumption and the average of the outside_temperature
-        self.df = self.df_raw.groupby("date").agg(
-            {"consumption": "sum", "temperature": "mean"}
-        )
+        self.df = self.df_raw.groupby("date").agg({"consumption": "sum", "temperature": "mean"})
 
         if self.dateranges_to_group_to is None:
             # use the whole date range as the default group
-            self.dateranges_to_group_to = [
-                DateRange(self.df.index.min(), self.df.index.max())
-            ]
+            self.dateranges_to_group_to = [DateRange(self.df.index.min(), self.df.index.max())]
 
-        self.baseline_df = self.apply_daterange(
-            self.df, date_range=self.baseline_period
-        )
+        self.baseline_df = self.apply_daterange(self.df, date_range=self.baseline_period)
         self._fit_function_to_baseline_period()
 
-        fitted_function = bind(
-            self.fitting_function, ..., *self.fitting_function_coefficients
-        )
+        fitted_function = bind(self.fitting_function, ..., *self.fitting_function_coefficients)
         self.df["baseline_consumption"] = self.df["temperature"].apply(fitted_function)
         self.df["saved_daily_consumption"] = self.df.apply(
             lambda row: row["baseline_consumption"] - row["consumption"], axis=1
         )
-        self.df["cumulative_consumption"] = self.df[
-            "consumption"
-        ].cumsum()
+        self.df["cumulative_consumption"] = self.df["consumption"].cumsum()
 
-        self.df["saved_cumulative_consumption"] = self.df[
-            "saved_daily_consumption"
-        ].cumsum()
+        self.df["saved_cumulative_consumption"] = self.df["saved_daily_consumption"].cumsum()
 
     @staticmethod
     def apply_daterange(df, date_range: DateRange) -> pd.DataFrame:
@@ -166,9 +154,7 @@ class ElectricityConsumptionReport:
             self.fitting_function(temperature_x, *self.fitting_function_coefficients),
             color="green",
         )
-        legend.append(
-            f"Baseline consumption {self.baseline_period.begin} - {self.baseline_period.end}"
-        )
+        legend.append(f"Baseline consumption {self.baseline_period.begin} - {self.baseline_period.end}")
 
         ax.legend(legend)
 
@@ -185,10 +171,7 @@ class ElectricityConsumptionReport:
         for date_range in self.dateranges_to_group_to:
             df_daterange = self.apply_daterange(self.df, date_range=date_range)
             x_data = df_daterange.index
-            y_data = (
-                df_daterange["saved_cumulative_consumption"]
-                - initial_saved_cumulative_consumption
-            )
+            y_data = df_daterange["saved_cumulative_consumption"] - initial_saved_cumulative_consumption
             ax.scatter(x_data, y_data, s=self.dot_size, color=date_range.color)
             legend.append(
                 f"Cumulative saved electricity compared to baseline [kWh] {date_range.begin} - {date_range.end}"
@@ -209,11 +192,8 @@ class ElectricityConsumptionReport:
             df_daterange = self.apply_daterange(self.df, date_range=date_range)
             x_data = df_daterange.index
             y_data = (
-                (df_daterange["saved_cumulative_consumption"]
-                - initial_saved_cumulative_consumption )
-                /
-                (df_daterange["cumulative_consumption"]
-                - initial_cumulative_consumption )
+                (df_daterange["saved_cumulative_consumption"] - initial_saved_cumulative_consumption)
+                / (df_daterange["cumulative_consumption"] - initial_cumulative_consumption)
                 * 100
             )
             ax.scatter(x_data, y_data, s=self.dot_size, color=date_range.color)
@@ -234,11 +214,6 @@ class ElectricityConsumptionReport:
         for date_range in self.dateranges_to_group_to:
             df_daterange = self.apply_daterange(self.df, date_range=date_range)
             x_data = df_daterange.index
-            y_data = (
-                df_daterange["cumulative_consumption"]
-                - initial_cumulative_consumption 
-            )
+            y_data = df_daterange["cumulative_consumption"] - initial_cumulative_consumption
             ax.scatter(x_data, y_data, s=self.dot_size, color=date_range.color)
-            legend.append(
-                f"Cumulative consumed electricity [kWh] {date_range.begin} - {date_range.end}"
-            )
+            legend.append(f"Cumulative consumed electricity [kWh] {date_range.begin} - {date_range.end}")
