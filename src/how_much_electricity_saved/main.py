@@ -118,9 +118,7 @@ class ElectricityConsumptionReport:
         self.df["saved_daily_consumption"] = self.df.apply(
             lambda row: row["baseline_consumption"] - row["consumption"], axis=1
         )
-        self.df["cumulative_consumption"] = self.df[
-            "consumption"
-        ].cumsum()
+        self.df["cumulative_consumption"] = self.df["consumption"].cumsum()
 
         self.df["saved_cumulative_consumption"] = self.df[
             "saved_daily_consumption"
@@ -178,8 +176,12 @@ class ElectricityConsumptionReport:
         ax.set_ylabel("Cumulative saved electricity [kWh]")
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
 
-        begin_date = self.apply_daterange(self.df, date_range=self.dateranges_to_group_to[0]).index[0]
-        initial_saved_cumulative_consumption = self.df["saved_cumulative_consumption"][begin_date]
+        begin_date = self.apply_daterange(
+            self.df, date_range=self.dateranges_to_group_to[0]
+        ).index[0]
+        initial_saved_cumulative_consumption = self.df["saved_cumulative_consumption"][
+            begin_date
+        ]
 
         legend = []
         for date_range in self.dateranges_to_group_to:
@@ -200,20 +202,27 @@ class ElectricityConsumptionReport:
         ax.set_ylabel("Cumulative saved electricity [%]")
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
 
-        begin_date = self.apply_daterange(self.df, date_range=self.dateranges_to_group_to[0]).index[0]
+        begin_date = self.apply_daterange(
+            self.df, date_range=self.dateranges_to_group_to[0]
+        ).index[0]
         initial_cumulative_consumption = self.df["cumulative_consumption"][begin_date]
-        initial_saved_cumulative_consumption = self.df["saved_cumulative_consumption"][begin_date]
+        initial_saved_cumulative_consumption = self.df["saved_cumulative_consumption"][
+            begin_date
+        ]
 
         legend = []
         for date_range in self.dateranges_to_group_to:
             df_daterange = self.apply_daterange(self.df, date_range=date_range)
             x_data = df_daterange.index
             y_data = (
-                (df_daterange["saved_cumulative_consumption"]
-                - initial_saved_cumulative_consumption )
-                /
-                (df_daterange["cumulative_consumption"]
-                - initial_cumulative_consumption )
+                (
+                    df_daterange["saved_cumulative_consumption"]
+                    - initial_saved_cumulative_consumption
+                )
+                / (
+                    df_daterange["cumulative_consumption"]
+                    - initial_cumulative_consumption
+                )
                 * 100
             )
             ax.scatter(x_data, y_data, s=self.dot_size, color=date_range.color)
@@ -227,7 +236,9 @@ class ElectricityConsumptionReport:
         ax.set_ylabel("Cumulative consumed electricity [kWh]")
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
 
-        begin_date = self.apply_daterange(self.df, date_range=self.dateranges_to_group_to[0]).index[0]
+        begin_date = self.apply_daterange(
+            self.df, date_range=self.dateranges_to_group_to[0]
+        ).index[0]
         initial_cumulative_consumption = self.df["cumulative_consumption"][begin_date]
 
         legend = []
@@ -235,8 +246,7 @@ class ElectricityConsumptionReport:
             df_daterange = self.apply_daterange(self.df, date_range=date_range)
             x_data = df_daterange.index
             y_data = (
-                df_daterange["cumulative_consumption"]
-                - initial_cumulative_consumption 
+                df_daterange["cumulative_consumption"] - initial_cumulative_consumption
             )
             ax.scatter(x_data, y_data, s=self.dot_size, color=date_range.color)
             legend.append(
