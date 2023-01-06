@@ -8,7 +8,7 @@ from how_much_electricity_saved.main import ElectricityConsumptionReport
 
 def main():
 
-    df = pd.read_csv("examples/sample_hourly_consumption.csv")
+    df = pd.read_csv("examples/sample_daily_consumption.csv")
 
     # Convert the time column to datetime
     df["time"] = pd.to_datetime(df["time"], format='%Y-%m-%d %H:%M:%S')
