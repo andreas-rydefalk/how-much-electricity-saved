@@ -27,6 +27,12 @@ Install development dependencies as well if you are going to make changes to the
 $ pip install -r requirements-development.txt
 ```
 
+## Running tests
+
+```sh
+$ pytest -v
+```
+
 ## Example
 
 Run the example in the example folder with the following command:
