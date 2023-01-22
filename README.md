@@ -32,6 +32,12 @@ $ pip install -r requirements-development.txt
 
 ## Running tests
 
+The tests for this project are written with pytest. To run the tests, make sure that the dev dependencies are installed:
+
+```sh
+$ pip install -r requirements-development.txt 
+```
+And then run the tests with the following command:
 ```sh
 $ pytest -v
 ```
