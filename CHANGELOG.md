@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.1.0] - 2023-01-22
+
+### Added
+
+- Added a function for creating a monthly bar chart graph of the electricity consumption
+- Added some tests
+
+### Changed
+
+- Changed the required version of Python from 3.6 to 3.9 in setup.cfg, because I have only tested this with 3.9 and 3.11. I'll not make any promises for earlier versions.
+
 ## [0.0.1] - 2022-12-30
 
 ### Added

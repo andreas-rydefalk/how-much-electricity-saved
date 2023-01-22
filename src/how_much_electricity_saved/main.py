@@ -30,6 +30,10 @@ class bind(partial):
 class ElectricityConsumptionReport:
 
     required_dataframe_columns = ["time", "consumption", "temperature"]
+    COLORS = {
+        "predicted": "#51A5BA",
+        "actual": "#6BCAE2",
+    }
 
     def __init__(
         self,
@@ -83,6 +87,7 @@ class ElectricityConsumptionReport:
         self.baseline_df = None
         self.fitting_function_coefficients = None
         self.covariance_matrix = None
+        self.monthly_df = None
 
         self.dot_size = dot_size
         if _preprocess_at_init:
@@ -96,35 +101,46 @@ class ElectricityConsumptionReport:
         self.df_raw["date"] = self.df_raw["time"].dt.date
 
         # Group the data by date and calculate the sum of the hourly_consumption and the average of the outside_temperature
-        self.df = self.df_raw.groupby("date").agg(
-            {"consumption": "sum", "temperature": "mean"}
-        )
+        self.df = self.df_raw.groupby("date").agg({"consumption": "sum", "temperature": "mean"})
 
         if self.dateranges_to_group_to is None:
             # use the whole date range as the default group
-            self.dateranges_to_group_to = [
-                DateRange(self.df.index.min(), self.df.index.max())
-            ]
+            self.dateranges_to_group_to = [DateRange(self.df.index.min(), self.df.index.max())]
 
-        self.baseline_df = self.apply_daterange(
-            self.df, date_range=self.baseline_period
-        )
+        self.baseline_df = self.apply_daterange(self.df, date_range=self.baseline_period)
         self._fit_function_to_baseline_period()
 
         fitted_function = bind(
-            self.fitting_function, ..., *self.fitting_function_coefficients
+            self.fitting_function,
+            ...,
+            *self.fitting_function_coefficients,
         )
         self.df["baseline_consumption"] = self.df["temperature"].apply(fitted_function)
         self.df["saved_daily_consumption"] = self.df.apply(
-            lambda row: row["baseline_consumption"] - row["consumption"], axis=1
+            lambda row: row["baseline_consumption"] - row["consumption"],
+            axis=1,
         )
-        self.df["cumulative_consumption"] = self.df[
-            "consumption"
-        ].cumsum()
+        self.df["cumulative_consumption"] = self.df["consumption"].cumsum()
+        self.df["cumulative_predicted_consumption"] = self.df["baseline_consumption"].cumsum()
 
-        self.df["saved_cumulative_consumption"] = self.df[
-            "saved_daily_consumption"
-        ].cumsum()
+        self.df["saved_cumulative_consumption"] = self.df["saved_daily_consumption"].cumsum()
+
+        # create a new column "month" so that a new monthly aggregated dataframe can be added
+        self.df["month"] = self.df.index
+        # Convert to datetime
+        self.df["month"] = pd.to_datetime(self.df["month"])
+        # format to string YYYY-mm
+        self.df["month"] = self.df["month"].dt.strftime("%Y-%m")
+
+        # Create a new dataframe with monthly aggregated data
+        self.monthly_df = self.df.groupby("month").agg(
+            {
+                "consumption": "sum",
+                "baseline_consumption": "sum",
+                "temperature": "mean",
+            }
+        )
+        self.monthly_df["month"] = self.monthly_df.index
 
     @staticmethod
     def apply_daterange(df, date_range: DateRange) -> pd.DataFrame:
@@ -166,9 +182,7 @@ class ElectricityConsumptionReport:
             self.fitting_function(temperature_x, *self.fitting_function_coefficients),
             color="green",
         )
-        legend.append(
-            f"Baseline consumption {self.baseline_period.begin} - {self.baseline_period.end}"
-        )
+        legend.append(f"Baseline consumption {self.baseline_period.begin} - {self.baseline_period.end}")
 
         ax.legend(legend)
 
@@ -178,17 +192,17 @@ class ElectricityConsumptionReport:
         ax.set_ylabel("Cumulative saved electricity [kWh]")
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
 
-        begin_date = self.apply_daterange(self.df, date_range=self.dateranges_to_group_to[0]).index[0]
+        begin_date = self.apply_daterange(
+            self.df,
+            date_range=self.dateranges_to_group_to[0],
+        ).index[0]
         initial_saved_cumulative_consumption = self.df["saved_cumulative_consumption"][begin_date]
 
         legend = []
         for date_range in self.dateranges_to_group_to:
             df_daterange = self.apply_daterange(self.df, date_range=date_range)
             x_data = df_daterange.index
-            y_data = (
-                df_daterange["saved_cumulative_consumption"]
-                - initial_saved_cumulative_consumption
-            )
+            y_data = df_daterange["saved_cumulative_consumption"] - initial_saved_cumulative_consumption
             ax.scatter(x_data, y_data, s=self.dot_size, color=date_range.color)
             legend.append(
                 f"Cumulative saved electricity compared to baseline [kWh] {date_range.begin} - {date_range.end}"
@@ -200,7 +214,10 @@ class ElectricityConsumptionReport:
         ax.set_ylabel("Cumulative saved electricity [%]")
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
 
-        begin_date = self.apply_daterange(self.df, date_range=self.dateranges_to_group_to[0]).index[0]
+        begin_date = self.apply_daterange(
+            self.df,
+            date_range=self.dateranges_to_group_to[0],
+        ).index[0]
         initial_cumulative_consumption = self.df["cumulative_consumption"][begin_date]
         initial_saved_cumulative_consumption = self.df["saved_cumulative_consumption"][begin_date]
 
@@ -209,11 +226,8 @@ class ElectricityConsumptionReport:
             df_daterange = self.apply_daterange(self.df, date_range=date_range)
             x_data = df_daterange.index
             y_data = (
-                (df_daterange["saved_cumulative_consumption"]
-                - initial_saved_cumulative_consumption )
-                /
-                (df_daterange["cumulative_consumption"]
-                - initial_cumulative_consumption )
+                (df_daterange["saved_cumulative_consumption"] - initial_saved_cumulative_consumption)
+                / (df_daterange["cumulative_consumption"] - initial_cumulative_consumption)
                 * 100
             )
             ax.scatter(x_data, y_data, s=self.dot_size, color=date_range.color)
@@ -227,18 +241,56 @@ class ElectricityConsumptionReport:
         ax.set_ylabel("Cumulative consumed electricity [kWh]")
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
 
-        begin_date = self.apply_daterange(self.df, date_range=self.dateranges_to_group_to[0]).index[0]
+        begin_date = self.apply_daterange(
+            self.df,
+            date_range=self.dateranges_to_group_to[0],
+        ).index[0]
         initial_cumulative_consumption = self.df["cumulative_consumption"][begin_date]
 
         legend = []
         for date_range in self.dateranges_to_group_to:
             df_daterange = self.apply_daterange(self.df, date_range=date_range)
             x_data = df_daterange.index
-            y_data = (
-                df_daterange["cumulative_consumption"]
-                - initial_cumulative_consumption 
-            )
+            y_data = df_daterange["cumulative_consumption"] - initial_cumulative_consumption
             ax.scatter(x_data, y_data, s=self.dot_size, color=date_range.color)
-            legend.append(
-                f"Cumulative consumed electricity [kWh] {date_range.begin} - {date_range.end}"
+            legend.append(f"Cumulative consumed electricity [kWh] {date_range.begin} - {date_range.end}")
+
+    def create_plot_monthly_bar_chart(self, ax: plt.axes):
+        """
+        Visualize monthly predicted consumption vs actual consumption as a bar chart
+        """
+        self.monthly_df.plot.bar(
+            x="month",
+            y=["baseline_consumption", "consumption"],
+            ax=ax,
+            color=[
+                self.COLORS["predicted"],
+                self.COLORS["actual"],
+            ],
+        )
+        # ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m"))
+        ax.legend(["Predicted consumption", "Actual consumption"])
+        ax.set_xlabel("Month")
+        ax.set_ylabel("Consumed electricity [kWh]")
+
+        patches_len = len(ax.patches)
+        for i, bar in enumerate(ax.patches[patches_len // 2 :]):
+            # get the x and y coordinates of the bar
+            x = bar.get_x()
+            baseline_consumption = self.monthly_df["baseline_consumption"][i]
+            consumption = self.monthly_df["consumption"][i]
+            reduction = round(100 * -(baseline_consumption - consumption) / baseline_consumption, 2)
+
+            sign = ""
+            if reduction >= 0:
+                sign = "+"
+            sign = "+" if reduction >= 0 else ""
+            color = "red" if reduction > 0 else "green"
+            ax.text(
+                x,
+                max([baseline_consumption, consumption]),
+                f"{sign}{reduction} %",
+                ha="center",
+                va="bottom",
+                color=color,
             )

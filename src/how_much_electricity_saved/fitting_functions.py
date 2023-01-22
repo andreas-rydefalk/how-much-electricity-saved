@@ -30,6 +30,7 @@ def fitting_func_poly4(
 ) -> float:
     return a * x**4 + b * x**3 + c * x**2 + d * x + e
 
+
 def fitting_func_linear(
     x: float,
     a: float,
