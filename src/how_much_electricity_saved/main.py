@@ -308,19 +308,31 @@ class ElectricityConsumptionReport:
             )
 
         # baseline period boundaries
-        baseline_begin_index = self.monthly_df[self.monthly_df["in_baseline_period"] == True].index[0]
-        baseline_end_index = self.monthly_df[self.monthly_df["in_baseline_period"] == True].index[-1]
+        baseline_begin_index = self.monthly_df[self.monthly_df["in_baseline_period"] == True].iloc[0].month
+        baseline_end_index = self.monthly_df[self.monthly_df["in_baseline_period"] == True].iloc[-1].month
         baseline_begin = self.monthly_df.index.get_loc(baseline_begin_index)
-        baseline_end = self.monthly_df.index.get_loc(baseline_end_index) + 1 - baseline_begin
+        baseline_end = self.monthly_df.index.get_loc(baseline_end_index) + 1
 
         # # Add a shaded background to the baseline period
         rect = Rectangle(
-            xy=(baseline_begin - 0.5, 0), width=baseline_end, height=ax.get_ylim()[1], facecolor="#F0F0F0", zorder=-1
+            xy=(baseline_begin - 0.5, 0),
+            width=baseline_end - baseline_begin,
+            height=ax.get_ylim()[1],
+            facecolor="#F0F0F0",
+            zorder=-1,
         )
         ax.add_patch(rect)
 
         # Add the floating text
-        ax.text(8 / 2, ax.get_ylim()[1] * 0.9, "Baseline period", ha="center", va="center", fontsize=14, color="black")
+        ax.text(
+            baseline_begin + (baseline_end - 1 - baseline_begin) / 2,
+            ax.get_ylim()[1] * 0.9,
+            "Baseline period",
+            ha="center",
+            va="center",
+            fontsize=14,
+            color="black",
+        )
 
         ax2 = ax.twinx()
         ax2.plot(self.monthly_df["month"], self.monthly_df["temperature"], label="Temperature", color="red")
