@@ -5,6 +5,7 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.patches import Rectangle
 from scipy.optimize import curve_fit
 
 from how_much_electricity_saved.date_range import DateRange
@@ -28,7 +29,6 @@ class bind(partial):
 
 
 class ElectricityConsumptionReport:
-
     required_dataframe_columns = ["time", "consumption", "temperature"]
     COLORS = {
         "predicted": "#51A5BA",
@@ -141,13 +141,24 @@ class ElectricityConsumptionReport:
             }
         )
         self.monthly_df["month"] = self.monthly_df.index
+        self.monthly_df["month_dt"] = pd.to_datetime(self.monthly_df["month"])
+        self.monthly_df["in_baseline_period"] = self.monthly_df["month_dt"].apply(
+            self.baseline_period.timestamp_in_date_range
+        )
+
+        self.monthly_df["diff"] = self.monthly_df["consumption"] - self.monthly_df["baseline_consumption"]
+
+        self.monthly_df["diff_percents"] = (
+            100
+            * (self.monthly_df["consumption"] - self.monthly_df["baseline_consumption"])
+            / self.monthly_df["baseline_consumption"]
+        )
 
     @staticmethod
     def apply_daterange(df, date_range: DateRange) -> pd.DataFrame:
         return df.loc[date_range.begin : date_range.end]
 
     def _fit_function_to_baseline_period(self) -> None:
-
         x_data = self.baseline_df["temperature"]
         y_data = self.baseline_df["consumption"]
 
@@ -163,7 +174,6 @@ class ElectricityConsumptionReport:
             )
 
     def create_scatter_plot_total(self, ax: plt.axes):
-
         ax.set_xlabel("Outside temperature [°C]")
         ax.set_ylabel("Electicity consumption [kWh/24h]")
         legend = []
@@ -187,7 +197,6 @@ class ElectricityConsumptionReport:
         ax.legend(legend)
 
     def create_plot_cumnulative_saved_electricity_vs_time(self, ax: plt.axes):
-
         ax.set_xlabel("Date")
         ax.set_ylabel("Cumulative saved electricity [kWh]")
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
@@ -209,7 +218,6 @@ class ElectricityConsumptionReport:
             )
 
     def create_plot_cumnulative_saved_electricity_percents(self, ax: plt.axes):
-
         ax.set_xlabel("Date")
         ax.set_ylabel("Cumulative saved electricity [%]")
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
@@ -236,7 +244,6 @@ class ElectricityConsumptionReport:
             )
 
     def create_plot_cumnulative_consumed_electricity(self, ax: plt.axes):
-
         ax.set_xlabel("Date")
         ax.set_ylabel("Cumulative consumed electricity [kWh]")
         ax.xaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d"))
@@ -279,7 +286,12 @@ class ElectricityConsumptionReport:
             x = bar.get_x()
             baseline_consumption = self.monthly_df["baseline_consumption"][i]
             consumption = self.monthly_df["consumption"][i]
-            reduction = round(100 * -(baseline_consumption - consumption) / baseline_consumption, 2)
+
+            if self.monthly_df["in_baseline_period"][i] or np.isnan(self.monthly_df["diff_percents"][i]):
+                continue
+
+            reduction = round(self.monthly_df["diff_percents"][i], 2)
+            diff = int(round(self.monthly_df["diff"][i], 0))
 
             sign = ""
             if reduction >= 0:
@@ -289,8 +301,27 @@ class ElectricityConsumptionReport:
             ax.text(
                 x,
                 max([baseline_consumption, consumption]),
-                f"{sign}{reduction} %",
+                f"{sign}{diff} kWh \n{sign}{reduction} %",
                 ha="center",
                 va="bottom",
                 color=color,
             )
+
+        # baseline period boundaries
+        baseline_begin_index = self.monthly_df[self.monthly_df["in_baseline_period"] == True].index[0]
+        baseline_end_index = self.monthly_df[self.monthly_df["in_baseline_period"] == True].index[-1]
+        baseline_begin = self.monthly_df.index.get_loc(baseline_begin_index)
+        baseline_end = self.monthly_df.index.get_loc(baseline_end_index) + 1 - baseline_begin
+
+        # # Add a shaded background to the baseline period
+        rect = Rectangle(
+            xy=(baseline_begin - 0.5, 0), width=baseline_end, height=ax.get_ylim()[1], facecolor="#F0F0F0", zorder=-1
+        )
+        ax.add_patch(rect)
+
+        # Add the floating text
+        ax.text(8 / 2, ax.get_ylim()[1] * 0.9, "Baseline period", ha="center", va="center", fontsize=14, color="black")
+
+        ax2 = ax.twinx()
+        ax2.plot(self.monthly_df["month"], self.monthly_df["temperature"], label="Temperature", color="red")
+        ax2.set_ylabel("Average outside temperature [°C]", color="red")

@@ -36,7 +36,6 @@ def sample_report() -> ElectricityConsumptionReport:
 
 
 def test_init(sample_report: ElectricityConsumptionReport):
-
     assert "consumption" in sample_report.df.columns
     assert "temperature" in sample_report.df.columns
     assert sample_report.baseline_period.begin == datetime.date(2022, 1, 1)
@@ -66,6 +65,10 @@ def test_preprocess_assert_df_columns(sample_report: ElectricityConsumptionRepor
         "baseline_consumption",
         "temperature",
         "month",
+        "month_dt",
+        "in_baseline_period",
+        "diff",
+        "diff_percents",
     ],
 )
 def test_preprocess_assert_monthly_df_columns(sample_report: ElectricityConsumptionReport, required_col):

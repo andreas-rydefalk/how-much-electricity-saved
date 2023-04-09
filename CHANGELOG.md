@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## [0.2.0] - 2023-04-09
+
+### Added
+
+- Improved the monthly bar chart
+  - Highlighted the baseline period
+  - Added average monthly outside temperature as a line
+  - Added the diff in kHw compared to baseline prediction
+  - Added the new columns of `self.monthly_df` to the tests
+  - Added more sample data
+
+### Changed
+
+- Simplified and updated the example and the example output png.
+
 ## [0.1.0] - 2023-01-22
 
 ### Added
