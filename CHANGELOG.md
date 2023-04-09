@@ -17,7 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Added the new columns of `self.monthly_df` to the tests
   - Added more sample data
 
-# Changed
+### Changed
 
 - Simplified and updated the example and the example output png.
 
