@@ -9,3 +9,9 @@ class DateRange:
         self.begin = pd.to_datetime(begin).date()
         self.end = pd.to_datetime(end).date()
         self.color = color
+
+    def timestamp_in_date_range(self, timestamp):
+        return timestamp.date() >= self.begin and timestamp.date() < self.end
+
+    def __repr__(self) -> str:
+        return f'DateRange("{self.begin}", "{self.end}")'
